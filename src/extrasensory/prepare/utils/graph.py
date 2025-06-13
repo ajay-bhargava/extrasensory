@@ -74,7 +74,7 @@ def get_sensor_names_from_features(feature_names):
 
     return feat_sensor_names;    
 
-def participant_continuity_context(timestamps, Y, label_names, labels_to_display, colors):
+def participant_continuity_context(timestamps, Y, label_names, labels_to_display, colors, user_uuid):
     """
     Visualize participant continuity context.
     """
@@ -105,6 +105,6 @@ def participant_continuity_context(timestamps, Y, label_names, labels_to_display
     ax.set_yticklabels(['(Collected data)'] + y_labels, fontsize=14)
 
     ax.grid(True)
-    ax.set_title('Participant Data Collection Context',fontsize=16)
+    ax.set_title(f'Participant Data Collection Context for: {user_uuid}',fontsize=16)
     
     return fig, ax

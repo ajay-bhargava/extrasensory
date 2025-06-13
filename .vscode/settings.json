@@ -6,8 +6,11 @@
 		"source.organizeImports": "explicit"
 	},
 	"explorer.excludeGitIgnore": true,
-	"python.testing.pytestArgs": ["__test__"],
+	"python.testing.pytestArgs": [
+		"__test__"
+	],
 	"python.testing.unittestEnabled": false,
 	"python.testing.pytestEnabled": true,
-	"python.analysis.autoImportCompletions": true
+	"python.analysis.autoImportCompletions": true,
+	"python.useTabForIndentation": true
 }
