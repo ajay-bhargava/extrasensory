@@ -61,7 +61,6 @@ app = modal.App(
     image=prepare_dataset_image,
 )
 
-
 @app.function(
     volumes={
         "/mnt": modal.CloudBucketMount(
