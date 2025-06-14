@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 
 def split_extrasensory_dataframe(df):
@@ -121,3 +122,87 @@ def find_nonoverlapping_contiguous_samples(indices, window_size=10):
             i += 1  # Move to the next index and try again
     return samples
 
+
+def clean_and_intersect_windows(X, windows, window_size=5):
+    """
+    For each list of indices in `windows`, extracts X[indices], handles nan/inf values by:
+    1. Dropping columns that are entirely nan/inf
+    2. Imputing values for columns that have some valid values but also some nan/inf
+    3. Finding the intersection of valid columns across all windows
+    
+    Parameters:
+        X (np.ndarray): The large array to sample from (shape: n_rows, n_cols)
+        windows (list of list of int): Each sublist contains row indices to extract from X
+        window_size (int): Size of the rolling window for imputation
+
+    Returns:
+        cleaned_samples (list of np.ndarray): Cleaned subarrays for each window, with only common columns
+        common_cols (np.ndarray): Indices of columns that are valid in all windows
+        kept_indices_per_window (list of np.ndarray): Kept column indices for each window before intersection
+        nan_inf_counts_per_window (list of np.ndarray): nan/inf counts per column for each window before intersection
+    """
+    kept_indices_per_window = []
+    nan_inf_counts_per_window = []
+    cleaned_samples_temp = []
+
+    for idxs in windows:
+        arr = X[idxs]
+        
+        # Detect NaN/Inf values
+        is_nan_or_inf = np.isnan(arr) | np.isinf(arr)
+        
+        # Find columns that are entirely NaN/Inf
+        all_nan_or_inf_cols = np.all(is_nan_or_inf, axis=0)
+        
+        # Find columns that have some NaN/Inf but also some valid values
+        some_nan_or_inf_cols = np.any(is_nan_or_inf, axis=0) & ~all_nan_or_inf_cols
+        
+        # Create a copy of the array for imputation
+        arr_imputed = arr.copy()
+        
+        # For each column that has some NaN/Inf values but isn't entirely NaN/Inf
+        for col in np.where(some_nan_or_inf_cols)[0]:
+            # Get the column data
+            col_data = arr[:, col]
+            
+            # Create a rolling window
+            for i in range(len(col_data)):
+                if is_nan_or_inf[i, col]:
+                    # Get window indices
+                    start = max(0, i - window_size)
+                    end = min(len(col_data), i + window_size + 1)
+                    window = col_data[start:end]
+                    
+                    # Remove NaN/Inf values from window
+                    valid_window = window[~np.isnan(window) & ~np.isinf(window)]
+                    
+                    if len(valid_window) > 0:
+                        # Impute with mean of valid values in window
+                        arr_imputed[i, col] = np.mean(valid_window)
+                    else:
+                        # If no valid values in window, use global mean
+                        arr_imputed[i, col] = np.mean(col_data[~np.isnan(col_data) & ~np.isinf(col_data)])
+        
+        # Keep only columns that aren't entirely NaN/Inf
+        kept_col_indices = np.where(~all_nan_or_inf_cols)[0]
+        arr_imputed = arr_imputed[:, kept_col_indices]
+        
+        # Count remaining NaN/Inf values after imputation
+        nan_or_inf_counts = np.sum(np.isnan(arr_imputed) | np.isinf(arr_imputed), axis=0)
+        
+        kept_indices_per_window.append(kept_col_indices)
+        nan_inf_counts_per_window.append(nan_or_inf_counts)
+        cleaned_samples_temp.append(arr_imputed)
+
+    # Find the intersection of all kept indices
+    common_cols = reduce(np.intersect1d, kept_indices_per_window)
+    
+    if len(common_cols) == 0:
+        print("Warning: No common columns found across all windows!")
+    else:
+        print(f"Found {len(common_cols)} common columns across all windows")
+
+    # For each window, select only the common columns
+    cleaned_samples = [X[idxs][:, common_cols] for idxs in windows]
+
+    return cleaned_samples, common_cols, kept_indices_per_window, nan_inf_counts_per_window
