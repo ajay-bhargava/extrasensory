@@ -92,7 +92,7 @@ def process_single_file(file, output_path):
         print(f"🔄 Fused Dataset as Sample x Features.")
         
         dataset = np.concatenate([inside_array, outside_array], axis=0)
-        labels = np.concatenate([np.zeros(len(inside_windows), dtype=int), np.ones(len(outside_windows), dtype=int)])
+        labels = np.concatenate([np.zeros(len(inside_windows), dtype=int), np.ones(len(outside_windows), dtype=int)]) # Inside is 0, Outside is 1
         
         print(f"✅ Successfully processed user {strip_name}")
         return dataset, labels
