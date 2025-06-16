@@ -58,15 +58,11 @@ training_image = (
 ####
 
 with training_image.imports():
-    import pandas as pd
     import numpy as np
-    import matplotlib.pyplot as plt
     from tsai.all import TSClassifier, TSStandardize, TSClassification, accuracy
-    import pandas as pd
     from sklearn.model_selection import train_test_split
     import wandb
     from fastai.callback.wandb import WandbCallback
-    from pathlib import Path
     
 ####
 # Weights Storage Location
@@ -131,15 +127,14 @@ def train_extrasensory():
             metrics=config["metrics"],
             arch=config["arch"],
             bs=config["bs"],
-            lr=config["lr"],
             cbs=[WandbCallback(log_preds=False, log_model=False, dataset_name="extrasensory-train")],
         )
 
         # Train Model
-        learn.fit(n_epoch=config["epochs"])
+        learn.fit_one_cycle(config["epochs"], config["lr"])
         
         # Save Weights
-        learn.save(f"{TRAINED_MODEL_PATH}/{wandb.run.name}") # type: ignore
+        learn.export(f"{TRAINED_MODEL_PATH}/{wandb.run.name}.pkl") # type: ignore
         
         # Save Weights hook for Modal Volume
         weights.commit()
